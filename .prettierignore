@@ -1,0 +1,14 @@
+dist
+node_modules
+coverage
+package-lock.json
+
+# Prior-phase documentation deliverables (docs/*) are already-reviewed,
+# committed content from earlier roles in this engagement. Formatting them
+# now would make this devops commit touch 57 unrelated files instead of
+# staying focused on the tooling it's actually establishing.
+docs/**
+
+# Approved brand/business source documents - not ours to reformat.
+zgate-brand-identity(1).html
+zgate-mission-vision-about(1).md
