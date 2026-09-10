@@ -1,0 +1,84 @@
+# Z-GATE Digital Platform — local development environment.
+#
+# This is the primary way to develop this project: `docker compose up`
+# gives Postgres + the backend (live-reload) + the frontend (live-reload)
+# all running in containers, isolated from the host machine's own Node/
+# Postgres installs — no global installs, no host-level service
+# configuration, matching docs/devops/DEVELOPMENT_ENVIRONMENT.md's
+# isolation requirement applied at the infrastructure level, not just
+# the package-manager level.
+#
+# Quick start:
+#   cp .env.example .env
+#   docker compose up
+#   -> web:      http://localhost:3001
+#   -> api:      http://localhost:3000
+#   -> postgres: localhost:5432 (zgate/zgate_dev/zgate_dev - dev only)
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: zgate
+      POSTGRES_PASSWORD: zgate_dev
+      POSTGRES_DB: zgate_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # db/migrations/*.sql is the schema's source of truth
+      # (docs/database/MIGRATION_STRATEGY.md) - the official Postgres
+      # image runs every .sql file here, in name order, exactly once,
+      # the first time the data volume is created.
+      - ./db/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zgate -d zgate_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    env_file: .env
+    environment:
+      # Inside the compose network, the database's hostname is the
+      # service name above, not localhost - overrides the host-oriented
+      # value in .env.example for this container only.
+      DATABASE_URL: postgres://zgate:zgate_dev@postgres:5432/zgate_dev
+      WEB_ORIGIN: http://localhost:3001
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      # Anonymous volume so the container's own Linux-built
+      # node_modules isn't shadowed by the host bind-mount above.
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      target: dev
+    environment:
+      # Browser-facing values - the user's own browser calls these, not
+      # another container, so they stay as published host ports, never
+      # the internal service hostname.
+      NEXT_PUBLIC_API_URL: http://localhost:3000
+      NEXT_PUBLIC_SITE_URL: http://localhost:3001
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
