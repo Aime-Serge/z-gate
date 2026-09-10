@@ -12,3 +12,9 @@ docs/**
 # Approved brand/business source documents - not ours to reformat.
 zgate-brand-identity(1).html
 zgate-mission-vision-about(1).md
+
+# apps/web is a separate package (docs/frontend/FRONTEND_ARCHITECTURE.md) -
+# root's Prettier happens to also cover its source (no separate config
+# there yet), but never its build output or dependencies.
+apps/web/.next/**
+apps/web/node_modules/**
