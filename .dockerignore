@@ -6,7 +6,11 @@ dist
 !.env.example
 apps
 docs
-db
+# db/ (currently just db/migrations) is needed inside the prod image now
+# (Dockerfile's prod stage COPYs it in for scripts/migrate.mjs) - no
+# longer excluded. Docker's ignore-negation can't re-include a path
+# whose parent directory is itself excluded, so this is a removal, not
+# a `!db/migrations` exception - see docs/devops/PRODUCTION_ARCHITECTURE.md.
 *.docx
 *.xlsx
 *.html
