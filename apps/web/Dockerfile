@@ -34,4 +34,14 @@ COPY --from=build --chown=zgate:zgate /app/public ./public
 USER zgate
 EXPOSE 3001
 ENV PORT=3001
+
+# Liveness probe (docs/devops/MONITORING.md) — the homepage is static,
+# pre-rendered content (app/page.tsx's `export const dynamic = "error"`),
+# so hitting "/" is a cheap, real check that the standalone server is
+# actually serving, not just that the process is running. No dedicated
+# health route exists on this package - the backend's /api/health is
+# the one with a database behind it worth probing separately.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD node -e "fetch('http://localhost:3001/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+
 CMD ["node", "server.js"]
