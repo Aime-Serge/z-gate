@@ -37,6 +37,13 @@ ENV NODE_ENV=production
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
+# scripts/migrate.mjs (docs/devops/DEPLOYMENT_RUNBOOK.md's migration
+# step) and the SQL it applies — bundled into the same image that runs
+# the app, not a separately-built migration image, so "what ran the
+# migration" and "what's actually deployed" can never drift apart. Its
+# only runtime dependency is `pg`, already installed above.
+COPY scripts ./scripts
+COPY db/migrations ./db/migrations
 
 # Runs as a non-root user, not the image default root — least privilege
 # (docs/security/SECURITY_REQUIREMENTS.md V14) applies to the container
@@ -44,5 +51,18 @@ COPY --from=build /app/dist ./dist
 RUN groupadd --gid 1001 zgate && useradd --uid 1001 --gid zgate --shell /bin/false zgate
 USER zgate
 
+# Matches lib/config.ts's own PORT default — explicit here so the
+# HEALTHCHECK below and this image's documented port can never drift
+# from what the app actually binds to.
+ENV PORT=3000
 EXPOSE 3000
+
+# Liveness probe (docs/devops/MONITORING.md) — hits the same /api/health
+# a load balancer/orchestrator would, from inside the container itself.
+# Plain `node`/global fetch, not curl/wget — neither is installed on the
+# `-slim` base, and adding one just for this would widen the image's
+# attack surface for a check this small.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD node -e "fetch('http://localhost:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+
 CMD ["node", "dist/server.js"]
