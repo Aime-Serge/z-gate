@@ -26,11 +26,11 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      # db/migrations/*.sql is the schema's source of truth
+      # backend/db/migrations/*.sql is the schema's source of truth
       # (docs/database/MIGRATION_STRATEGY.md) - the official Postgres
       # image runs every .sql file here, in name order, exactly once,
       # the first time the data volume is created.
-      - ./db/migrations:/docker-entrypoint-initdb.d:ro
+      - ./backend/db/migrations:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U zgate -d zgate_dev"]
       interval: 5s
@@ -39,10 +39,10 @@ services:
 
   api:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
       target: dev
-    env_file: .env
+    env_file: ./backend/.env
     environment:
       # Inside the compose network, the database's hostname is the
       # service name above, not localhost - overrides the host-oriented
@@ -52,7 +52,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - .:/app
+      - ./backend:/app
       # Anonymous volume so the container's own Linux-built
       # node_modules isn't shadowed by the host bind-mount above.
       - /app/node_modules
@@ -62,7 +62,7 @@ services:
 
   web:
     build:
-      context: ./apps/web
+      context: ./frontend
       dockerfile: Dockerfile
       target: dev
     environment:
@@ -74,7 +74,7 @@ services:
     ports:
       - "3001:3001"
     volumes:
-      - ./apps/web:/app
+      - ./frontend:/app
       - /app/node_modules
       - /app/.next
     depends_on:
