@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+coverage/
+
+# Environment - never commit real secrets/config
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Vitest / test artifacts
+.vitest-cache/
+
+# Local-disk deliverable storage (lib/storage.ts's dev/test fallback) -
+# never real Client documents committed to version control.
+storage/
