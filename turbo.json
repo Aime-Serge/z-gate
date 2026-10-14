@@ -16,7 +16,14 @@
     },
     "test": {
       "dependsOn": ["^build"],
-      "env": ["DATABASE_URL", "SESSION_SECRET", "SESSION_SALT"]
+      "env": [
+        "DATABASE_URL",
+        "SESSION_SECRET",
+        "SESSION_SALT",
+        "PAYLOAD_SECRET",
+        "SITE_URL",
+        "ADMIN_URL"
+      ]
     },
     "dev": {
       "cache": false,

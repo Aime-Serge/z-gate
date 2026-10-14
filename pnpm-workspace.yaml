@@ -1,6 +1,10 @@
+# Two products, one frozen legacy app, and the shared code both products
+# may use (docs/architecture/ADR/ADR-007-separate-product-backends.md).
 packages:
-  - "apps/*"
-  - "packages/*"
+  - "website/*"
+  - "elearning/*"
+  - "shared/*"
+  - "legacy/*"
 
 # Supply-chain guard (docs/platform-v2/05-SECURITY-COMPLIANCE.md §5): never
 # resolve a package version published less than 14 days ago. Most
