@@ -14,7 +14,7 @@
     "test": "turbo run test",
     "format": "prettier --check .",
     "format:write": "prettier --write .",
-    "db:migrate": "pnpm --filter @zgate/learn-api db:migrate"
+    "db:migrate": "pnpm --filter @zgate/elearning-backend db:migrate"
   },
   "devDependencies": {
     "prettier": "3.9.6",

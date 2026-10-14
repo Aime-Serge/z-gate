@@ -1,6 +1,6 @@
 # Z-GATE local development stack.
 #
-#   cp apps/learn-api/.env.example apps/learn-api/.env
+#   cp elearning/backend/.env.example elearning/backend/.env
 #   docker compose up
 #     -> website:    http://localhost:3002   (CMS at /admin)
 #     -> ops portal: http://localhost:3001
@@ -18,11 +18,11 @@ x-node: &node
     - .:/repo
     # Linux dependencies stay in named volumes, never on the host mount.
     - node_modules:/repo/node_modules
-    - api_node_modules:/repo/apps/learn-api/node_modules
-    - ops_node_modules:/repo/apps/ops/node_modules
-    - ops_next:/repo/apps/ops/.next
-    - website_node_modules:/repo/apps/website/node_modules
-    - website_next:/repo/apps/website/.next
+    - api_node_modules:/repo/elearning/backend/node_modules
+    - ops_node_modules:/repo/legacy/ops/node_modules
+    - ops_next:/repo/legacy/ops/.next
+    - website_node_modules:/repo/website/app/node_modules
+    - website_next:/repo/website/app/.next
     - pnpm_store:/pnpm/store
 
 services:
@@ -55,7 +55,7 @@ services:
   # instead of Postgres' initdb directory.
   migrate:
     <<: *node
-    command: pnpm --filter @zgate/learn-api db:migrate
+    command: pnpm --filter @zgate/elearning-backend db:migrate
     environment:
       DATABASE_URL: postgres://zgate:zgate_dev@postgres:5432/zgate_dev
     depends_on:
@@ -72,7 +72,7 @@ services:
       # Dev-only throwaway value, like the database password above.
       PAYLOAD_SECRET: dev-only-payload-secret-not-for-any-real-environment
       SITE_URL: http://localhost:3002
-      MEDIA_DIR: /repo/apps/website/media
+      MEDIA_DIR: /repo/website/app/media
     depends_on:
       postgres:
         condition: service_healthy
@@ -91,8 +91,8 @@ services:
 
   api:
     <<: *node
-    command: pnpm --filter @zgate/learn-api dev
-    env_file: ./apps/learn-api/.env
+    command: pnpm --filter @zgate/elearning-backend dev
+    env_file: ./elearning/backend/.env
     environment:
       DATABASE_URL: postgres://zgate:zgate_dev@postgres:5432/zgate_dev
       WEB_ORIGIN: http://localhost:3001

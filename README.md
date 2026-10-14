@@ -2,19 +2,21 @@
 
 "Where Business Meets Technology." Z-GATE LTD is a Rwandan company with four divisions: Advisory, Academy, Tech and Data. This repository holds its digital products. It is moving from one all-in-one web app (v1) to **separate products with separate backends**:
 
-| Product                                                   | App(s)                                    | Status                                          |
-| --------------------------------------------------------- | ----------------------------------------- | ----------------------------------------------- |
-| **Corporate website** (full-stack: Next.js + Payload CMS) | `apps/website`                            | CMS, pages, forms done; launch hardening next   |
-| **E-learning platform**                                   | `apps/learn` (UI), `apps/learn-api` (API) | API carried over from v1; UI scaffold to follow |
-| **Operations portal** (v1 client portal + staff console)  | `apps/ops`                                | Moved as-is, feature-frozen                     |
+| Product                                                   | App(s)                                               | Status                                          |
+| --------------------------------------------------------- | ---------------------------------------------------- | ----------------------------------------------- |
+| **Corporate website** (full-stack: Next.js + Payload CMS) | `website/app`                                        | CMS, pages, forms done; launch hardening next   |
+| **E-learning platform**                                   | `elearning/frontend` (UI), `elearning/backend` (API) | API carried over from v1; UI scaffold to follow |
+| **Operations portal** (v1 client portal + staff console)  | `legacy/ops`                                         | Moved as-is, feature-frozen                     |
 
 The plan, assessment and decisions are in **`docs/platform-v2/`** (start with its `README.md`). The separate-backends decision is `docs/architecture/ADR/ADR-007-separate-product-backends.md`. The final v1 state is preserved at the git tag `v1-final`.
 
 ## Repository structure
 
 ```text
-apps/          Deployable products (see table above)
-packages/      Shared code: ui, contracts, config (added as needed)
+website/       Corporate website (website/app)
+elearning/     E-learning platform (frontend, backend)
+legacy/        Frozen v1 operations portal (legacy/ops)
+shared/        Shared code: ui, contracts, config
 infra/         Development image; deployment config to follow
 docs/          platform-v2/ (current) + every earlier phase's output
 ```
@@ -25,7 +27,7 @@ pnpm workspace + Turborepo. One lockfile; each app deploys independently.
 
 ```bash
 corepack enable                                    # once; pnpm version comes from package.json
-cp apps/learn-api/.env.example apps/learn-api/.env
+cp elearning/backend/.env.example elearning/backend/.env
 docker compose up                                  # or see docs/DEVELOPER_GUIDE.md for host setup
 ```
 
