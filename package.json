@@ -1,0 +1,23 @@
+{
+  "name": "zgate",
+  "private": true,
+  "description": "Z-GATE digital products monorepo - corporate website, e-learning platform and shared packages (docs/platform-v2/)",
+  "packageManager": "pnpm@10.34.6",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --check .",
+    "format:write": "prettier --write .",
+    "db:migrate": "pnpm --filter @zgate/learn-api db:migrate"
+  },
+  "devDependencies": {
+    "prettier": "3.9.6",
+    "turbo": "2.11.5"
+  }
+}

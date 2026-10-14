@@ -1,0 +1,15 @@
+# Build context is the repository root for every image (pnpm workspace).
+# Keep it small and free of secrets.
+.git
+.github
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/coverage
+**/storage
+**/.env
+**/.env.*
+!**/.env.example
+docs
+*.log

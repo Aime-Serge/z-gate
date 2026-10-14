@@ -1,19 +1,29 @@
-# Z-GATE Digital Platform — local development environment.
+# Z-GATE local development stack.
 #
-# This is the primary way to develop this project: `docker compose up`
-# gives Postgres + the backend (live-reload) + the frontend (live-reload)
-# all running in containers, isolated from the host machine's own Node/
-# Postgres installs — no global installs, no host-level service
-# configuration, matching docs/devops/DEVELOPMENT_ENVIRONMENT.md's
-# isolation requirement applied at the infrastructure level, not just
-# the package-manager level.
-#
-# Quick start:
-#   cp .env.example .env
+#   cp apps/learn-api/.env.example apps/learn-api/.env
 #   docker compose up
-#   -> web:      http://localhost:3001
-#   -> api:      http://localhost:3000
-#   -> postgres: localhost:5432 (zgate/zgate_dev/zgate_dev - dev only)
+#     -> website:    http://localhost:3002   (CMS at /admin)
+#     -> ops portal: http://localhost:3001
+#     -> api:        http://localhost:3000   (GET /api/health, /api/ready)
+#     -> postgres:   localhost:5432          (zgate / zgate_dev - dev only)
+#
+# Every port binds to 127.0.0.1 only, never all interfaces
+# (docs/SECURITY_GUIDE.md F-7).
+
+x-node: &node
+  build:
+    context: .
+    dockerfile: infra/docker/dev.Dockerfile
+  volumes:
+    - .:/repo
+    # Linux dependencies stay in named volumes, never on the host mount.
+    - node_modules:/repo/node_modules
+    - api_node_modules:/repo/apps/learn-api/node_modules
+    - ops_node_modules:/repo/apps/ops/node_modules
+    - ops_next:/repo/apps/ops/.next
+    - website_node_modules:/repo/apps/website/node_modules
+    - website_next:/repo/apps/website/.next
+    - pnpm_store:/pnpm/store
 
 services:
   postgres:
@@ -23,62 +33,97 @@ services:
       POSTGRES_PASSWORD: zgate_dev
       POSTGRES_DB: zgate_dev
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      # backend/db/migrations/*.sql is the schema's source of truth
-      # (docs/database/MIGRATION_STRATEGY.md) - the official Postgres
-      # image runs every .sql file here, in name order, exactly once,
-      # the first time the data volume is created.
-      - ./backend/db/migrations:/docker-entrypoint-initdb.d:ro
+      # Creates the website's separate database on first start.
+      - ./infra/docker/postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U zgate -d zgate_dev"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  api:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      target: dev
-    env_file: ./backend/.env
+  # One-shot: install workspace dependencies once, before any app starts,
+  # so two services never race to write the same node_modules volume.
+  install:
+    <<: *node
+    command: pnpm install --frozen-lockfile
+
+  # One-shot: apply migrations with the same runner CI, staging and
+  # production use (docs/platform-v2/01-CURRENT-STATE-ASSESSMENT.md N-9),
+  # instead of Postgres' initdb directory.
+  migrate:
+    <<: *node
+    command: pnpm --filter @zgate/learn-api db:migrate
     environment:
-      # Inside the compose network, the database's hostname is the
-      # service name above, not localhost - overrides the host-oriented
-      # value in .env.example for this container only.
       DATABASE_URL: postgres://zgate:zgate_dev@postgres:5432/zgate_dev
-      WEB_ORIGIN: http://localhost:3001
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./backend:/app
-      # Anonymous volume so the container's own Linux-built
-      # node_modules isn't shadowed by the host bind-mount above.
-      - /app/node_modules
     depends_on:
       postgres:
         condition: service_healthy
+      install:
+        condition: service_completed_successfully
 
-  web:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      target: dev
+  website-migrate:
+    <<: *node
+    command: pnpm --filter @zgate/website migrate
+    environment: &website-env
+      DATABASE_URL: postgres://zgate:zgate_dev@postgres:5432/zgate_website
+      # Dev-only throwaway value, like the database password above.
+      PAYLOAD_SECRET: dev-only-payload-secret-not-for-any-real-environment
+      SITE_URL: http://localhost:3002
+      MEDIA_DIR: /repo/apps/website/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      install:
+        condition: service_completed_successfully
+
+  website:
+    <<: *node
+    command: pnpm --filter @zgate/website dev
+    environment: *website-env
+    ports:
+      - "127.0.0.1:3002:3002"
+    depends_on:
+      website-migrate:
+        condition: service_completed_successfully
+
+  api:
+    <<: *node
+    command: pnpm --filter @zgate/learn-api dev
+    env_file: ./apps/learn-api/.env
     environment:
-      # Browser-facing values - the user's own browser calls these, not
-      # another container, so they stay as published host ports, never
-      # the internal service hostname.
+      DATABASE_URL: postgres://zgate:zgate_dev@postgres:5432/zgate_dev
+      WEB_ORIGIN: http://localhost:3001
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  ops:
+    <<: *node
+    command: pnpm --filter @zgate/ops dev
+    environment:
+      # Browser-facing values: the browser calls these, so they stay as
+      # published host ports, not compose service names.
       NEXT_PUBLIC_API_URL: http://localhost:3000
       NEXT_PUBLIC_SITE_URL: http://localhost:3001
     ports:
-      - "3001:3001"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
+      - "127.0.0.1:3001:3001"
     depends_on:
-      - api
+      install:
+        condition: service_completed_successfully
+      api:
+        condition: service_started
 
 volumes:
   pgdata:
+  node_modules:
+  api_node_modules:
+  ops_node_modules:
+  ops_next:
+  website_node_modules:
+  website_next:
+  pnpm_store:

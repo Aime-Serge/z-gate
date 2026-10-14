@@ -1,36 +1,41 @@
-# Z-GATE Digital Platform
+# Z-GATE Digital Products
 
-"Where Business Meets Technology." Z-GATE LTD is a Rwandan company operating four integrated divisions — Advisory, Academy, Tech, and Data. This repository is the digital platform built to support that business: a public marketing website, lead-capture/CRM, a staff operations platform, a client portal, and a full Academy course/enrollment workflow.
+"Where Business Meets Technology." Z-GATE LTD is a Rwandan company with four divisions: Advisory, Academy, Tech and Data. This repository holds its digital products. It is moving from one all-in-one web app (v1) to **separate products with separate backends**:
 
-## Start here
+| Product                                                   | App(s)                                    | Status                                          |
+| --------------------------------------------------------- | ----------------------------------------- | ----------------------------------------------- |
+| **Corporate website** (full-stack: Next.js + Payload CMS) | `apps/website`                            | CMS, pages, forms done; launch hardening next   |
+| **E-learning platform**                                   | `apps/learn` (UI), `apps/learn-api` (API) | API carried over from v1; UI scaffold to follow |
+| **Operations portal** (v1 client portal + staff console)  | `apps/ops`                                | Moved as-is, feature-frozen                     |
 
-- **New to this repo?** Read `docs/SYSTEM_OVERVIEW.md` first, then `docs/DEVELOPER_GUIDE.md` for setup.
-- **Taking this over, or auditing it?** `docs/HANDOVER.md` is the accurate, current state — what's built, what's not, and what's still blocking a real production launch. Read it before trusting any status claim elsewhere in this repo, including in this file.
-- **Want the full history?** The `docs/` tree is the project's real history, phase by phase — `docs/discovery/` through `docs/backend/` for how this system was designed before it was built, plus `docs/qa/`, `docs/security/`, `docs/performance/`, `docs/devops/`, and `docs/release/` for how it was verified afterward.
+The plan, assessment and decisions are in **`docs/platform-v2/`** (start with its `README.md`). The separate-backends decision is `docs/architecture/ADR/ADR-007-separate-product-backends.md`. The final v1 state is preserved at the git tag `v1-final`.
 
 ## Repository structure
 
-```
-backend/           Fastify + Kysely + PostgreSQL API (docs/backend/, docs/ARCHITECTURE.md)
-frontend/          Public website + portal + staff platform — Next.js (docs/frontend/)
-docs/              Every phase's approved output, plus the top-level handover docs below
+```text
+apps/          Deployable products (see table above)
+packages/      Shared code: ui, contracts, config (added as needed)
+infra/         Development image; deployment config to follow
+docs/          platform-v2/ (current) + every earlier phase's output
 ```
 
-Two independent packages, each with its own `package.json`/lockfile — deliberately not an npm-workspaces monorepo (`docs/frontend/FRONTEND_ARCHITECTURE.md`).
+pnpm workspace + Turborepo. One lockfile; each app deploys independently.
 
-## Quick start (Docker Compose — the primary way to develop this project)
+## Quick start
 
 ```bash
-cp backend/.env.example backend/.env
-docker compose up
+corepack enable                                    # once; pnpm version comes from package.json
+cp apps/learn-api/.env.example apps/learn-api/.env
+docker compose up                                  # or see docs/DEVELOPER_GUIDE.md for host setup
 ```
 
-- Website: http://localhost:3001
-- API: http://localhost:3000 (health check: `GET /api/health`, readiness: `GET /api/ready`)
-- Postgres: `localhost:5432` (dev-only throwaway credentials)
+- Website: http://localhost:3002 (CMS admin at `/admin`; load the approved copy once with `pnpm --filter @zgate/website seed`)
+- Ops portal: http://localhost:3001
+- API: http://localhost:3000 (`GET /api/health`, `GET /api/ready`)
+- Postgres: `localhost:5432` (dev-only credentials)
 
-Full detail, including the host-level fallback if Docker isn't available to you: `docs/DEVELOPER_GUIDE.md` and `docs/devops/DEVELOPMENT_ENVIRONMENT.md`.
+Checks: `pnpm lint && pnpm typecheck && pnpm test && pnpm build`. Full detail: `docs/DEVELOPER_GUIDE.md`.
 
 ## Current status
 
-See `docs/HANDOVER.md` for the complete, current picture — code quality is strong (lint/typecheck/tests/build clean on both packages, real CI running on GitHub Actions), but this platform is **not yet cleared for production deployment**: an independent security audit and a commercial-readiness review both found real, unresolved issues after the initial release-candidate phase. Do not treat this repository as "done" without reading that document first.
+v1 was never deployed to production, and its release blockers are still open. They are tracked in `docs/HANDOVER.md`, `docs/SECURITY_GUIDE.md` and `docs/platform-v2/05-SECURITY-COMPLIANCE.md`. Don't treat any part of this repository as production-ready without reading those first.

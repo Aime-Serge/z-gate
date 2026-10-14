@@ -1,0 +1,40 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Supply-chain guard (docs/platform-v2/05-SECURITY-COMPLIANCE.md §5): never
+# resolve a package version published less than 14 days ago. Most
+# malicious releases are caught and pulled within that window.
+minimumReleaseAge: 20160
+
+# Security fixes may bypass the waiting period - an exploitable, published
+# vulnerability is a bigger risk than an unvetted patch release. Each entry
+# needs a reason and is removed once the pinned version is 14 days old.
+minimumReleaseAgeExclude:
+  # next 16.3.8 (2026-09-30) fixes GHSA-vcvr-r3jv-pc5j (critical, RCE in
+  # next/og) plus several high/moderate advisories in 16.3.4. Remove after
+  # 2026-10-15.
+  - next
+  - "@next/*"
+  - eslint-config-next
+  # source-map-js 1.2.2 (2026-09-30), high-severity fix; dev-only via
+  # vitest > vite > postcss. Remove after 2026-10-15.
+  - source-map-js
+
+# Advisories with no patched release, reviewed and accepted. Re-check on
+# every dependency update; delete the entry the moment a fix ships.
+auditConfig:
+  ignoreGhsas:
+    # braces <=3.0.3 stack-exhaustion DoS via deeply nested patterns. No
+    # fixed version exists. Reached only through lint tooling
+    # (eslint-config-next > fast-glob > micromatch) on the repo's own
+    # trusted glob patterns - never on user input, never in a runtime image.
+    - GHSA-vfj7-8cjw-p6xm
+
+# pnpm does not run dependency install scripts unless they are listed
+# here. Only packages that genuinely need a native build or binary download.
+onlyBuiltDependencies:
+  - bcrypt
+  - esbuild
+  - sharp
+  - unrs-resolver
