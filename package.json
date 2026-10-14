@@ -17,6 +17,7 @@
     "db:migrate": "pnpm --filter @zgate/elearning-backend db:migrate"
   },
   "devDependencies": {
+    "@zgate/config": "workspace:*",
     "prettier": "3.9.6",
     "turbo": "2.11.5"
   }
