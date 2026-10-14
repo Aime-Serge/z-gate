@@ -1,6 +1,6 @@
 # Z-GATE local development - everything at once:
 #
-#   cp elearning/backend/.env.example elearning/backend/.env
+#   cp elearning/.env.example elearning/backend/.env
 #   docker compose up
 #     -> website:      http://localhost:3002   (CMS at /admin)
 #     -> e-learning:   http://localhost:3003   (frontend) / :3000 (API)
