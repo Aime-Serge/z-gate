@@ -1,0 +1,46 @@
+# Website (website/app: Next.js + Payload CMS) - local development.
+# Needs base.yml (Postgres, install): see the header there.
+#   -> http://localhost:3002   (CMS at /admin)
+
+x-node: &node
+  build:
+    context: ../..
+    dockerfile: infra/docker/dev.Dockerfile
+  volumes:
+    - ../..:/repo
+    - node_modules:/repo/node_modules
+    - pnpm_store:/pnpm/store
+    - website_node_modules:/repo/website/app/node_modules
+    - website_next:/repo/website/app/.next
+    - shared_config_node_modules:/repo/shared/config/node_modules
+    - shared_ui_node_modules:/repo/shared/ui/node_modules
+    - shared_contracts_node_modules:/repo/shared/contracts/node_modules
+
+x-website-env:
+  &website-env # The website's own database and user (postgres-init/01-product-databases.sql).
+  DATABASE_URL: postgres://zgate_website:zgate_website_dev@postgres:5432/zgate_website
+  # Dev-only throwaway value, like the database password.
+  PAYLOAD_SECRET: dev-only-payload-secret-not-for-any-real-environment
+  SITE_URL: http://localhost:3002
+  MEDIA_DIR: /repo/website/app/media
+
+services:
+  website-migrate:
+    <<: *node
+    command: pnpm --filter @zgate/website migrate
+    environment: *website-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      install:
+        condition: service_completed_successfully
+
+  website:
+    <<: *node
+    command: pnpm --filter @zgate/website dev
+    environment: *website-env
+    ports:
+      - "127.0.0.1:3002:3002"
+    depends_on:
+      website-migrate:
+        condition: service_completed_successfully

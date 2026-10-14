@@ -1,0 +1,67 @@
+# Shared local-development services: one Postgres server (two product
+# databases) and the one-shot dependency install every Node service waits
+# for. Always combined with at least one product file:
+#
+#   docker compose up                                        # everything (root docker-compose.yml)
+#   docker compose -f infra/compose/base.yml -f infra/compose/website.yml up
+#   docker compose -f infra/compose/base.yml -f infra/compose/elearning.yml up
+#
+# Paths are relative to this directory (infra/compose/). Every port binds to
+# 127.0.0.1 only (docs/SECURITY_GUIDE.md F-7).
+
+x-node: &node
+  build:
+    context: ../..
+    dockerfile: infra/docker/dev.Dockerfile
+  # Linux dependencies stay in named volumes, never on the host mount.
+  volumes:
+    - ../..:/repo
+    - node_modules:/repo/node_modules
+    - pnpm_store:/pnpm/store
+    - website_node_modules:/repo/website/app/node_modules
+    - elearning_backend_node_modules:/repo/elearning/backend/node_modules
+    - elearning_frontend_node_modules:/repo/elearning/frontend/node_modules
+    - ops_node_modules:/repo/legacy/ops/node_modules
+    - shared_config_node_modules:/repo/shared/config/node_modules
+    - shared_ui_node_modules:/repo/shared/ui/node_modules
+    - shared_contracts_node_modules:/repo/shared/contracts/node_modules
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: zgate
+      POSTGRES_PASSWORD: zgate_dev
+      POSTGRES_DB: zgate_dev
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Creates zgate_website and zgate_elearning, each with its own user.
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zgate -d zgate_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # One-shot: install workspace dependencies once, before any app starts,
+  # so two services never race to write the same node_modules volume.
+  install:
+    <<: *node
+    command: pnpm install --frozen-lockfile
+
+volumes:
+  pgdata:
+  node_modules:
+  pnpm_store:
+  website_node_modules:
+  website_next:
+  elearning_backend_node_modules:
+  elearning_frontend_node_modules:
+  elearning_frontend_next:
+  ops_node_modules:
+  ops_next:
+  shared_config_node_modules:
+  shared_ui_node_modules:
+  shared_contracts_node_modules:

@@ -1,0 +1,31 @@
+# Frozen v1 operations portal (legacy/ops) - local development only.
+# Talks to the e-learning API (elearning.yml), which is still the v1 backend.
+#   -> http://localhost:3001
+
+x-node: &node
+  build:
+    context: ../..
+    dockerfile: infra/docker/dev.Dockerfile
+  volumes:
+    - ../..:/repo
+    - node_modules:/repo/node_modules
+    - pnpm_store:/pnpm/store
+    - ops_node_modules:/repo/legacy/ops/node_modules
+    - ops_next:/repo/legacy/ops/.next
+
+services:
+  ops:
+    <<: *node
+    command: pnpm --filter @zgate/ops dev
+    environment:
+      # Browser-facing values: the browser calls these, so they stay as
+      # published host ports, not compose service names.
+      NEXT_PUBLIC_API_URL: http://localhost:3000
+      NEXT_PUBLIC_SITE_URL: http://localhost:3001
+    ports:
+      - "127.0.0.1:3001:3001"
+    depends_on:
+      install:
+        condition: service_completed_successfully
+      elearning-backend:
+        condition: service_started

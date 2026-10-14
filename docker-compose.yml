@@ -1,129 +1,20 @@
-# Z-GATE local development stack.
+# Z-GATE local development - everything at once:
 #
 #   cp elearning/backend/.env.example elearning/backend/.env
 #   docker compose up
-#     -> website:    http://localhost:3002   (CMS at /admin)
-#     -> ops portal: http://localhost:3001
-#     -> api:        http://localhost:3000   (GET /api/health, /api/ready)
-#     -> postgres:   localhost:5432          (zgate / zgate_dev - dev only)
+#     -> website:      http://localhost:3002   (CMS at /admin)
+#     -> e-learning:   http://localhost:3003   (frontend) / :3000 (API)
+#     -> legacy ops:   http://localhost:3001
+#     -> postgres:     localhost:5432          (databases zgate_website, zgate_elearning)
 #
-# Every port binds to 127.0.0.1 only, never all interfaces
-# (docs/SECURITY_GUIDE.md F-7).
+# The files are listed as ONE include entry so Compose merges them into a
+# single model, the same as `-f a -f b`: products share the base Postgres
+# and install services, which separately included files couldn't reference.
+# To run one product only, see infra/compose/base.yml.
 
-x-node: &node
-  build:
-    context: .
-    dockerfile: infra/docker/dev.Dockerfile
-  volumes:
-    - .:/repo
-    # Linux dependencies stay in named volumes, never on the host mount.
-    - node_modules:/repo/node_modules
-    - api_node_modules:/repo/elearning/backend/node_modules
-    - ops_node_modules:/repo/legacy/ops/node_modules
-    - ops_next:/repo/legacy/ops/.next
-    - website_node_modules:/repo/website/app/node_modules
-    - website_next:/repo/website/app/.next
-    - pnpm_store:/pnpm/store
-
-services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: zgate
-      POSTGRES_PASSWORD: zgate_dev
-      POSTGRES_DB: zgate_dev
-    ports:
-      - "127.0.0.1:5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      # Creates the website's separate database on first start.
-      - ./infra/docker/postgres-init:/docker-entrypoint-initdb.d:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U zgate -d zgate_dev"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-  # One-shot: install workspace dependencies once, before any app starts,
-  # so two services never race to write the same node_modules volume.
-  install:
-    <<: *node
-    command: pnpm install --frozen-lockfile
-
-  # One-shot: apply migrations with the same runner CI, staging and
-  # production use (docs/platform-v2/01-CURRENT-STATE-ASSESSMENT.md N-9),
-  # instead of Postgres' initdb directory.
-  migrate:
-    <<: *node
-    command: pnpm --filter @zgate/elearning-backend db:migrate
-    environment:
-      DATABASE_URL: postgres://zgate:zgate_dev@postgres:5432/zgate_dev
-    depends_on:
-      postgres:
-        condition: service_healthy
-      install:
-        condition: service_completed_successfully
-
-  website-migrate:
-    <<: *node
-    command: pnpm --filter @zgate/website migrate
-    environment: &website-env
-      DATABASE_URL: postgres://zgate:zgate_dev@postgres:5432/zgate_website
-      # Dev-only throwaway value, like the database password above.
-      PAYLOAD_SECRET: dev-only-payload-secret-not-for-any-real-environment
-      SITE_URL: http://localhost:3002
-      MEDIA_DIR: /repo/website/app/media
-    depends_on:
-      postgres:
-        condition: service_healthy
-      install:
-        condition: service_completed_successfully
-
-  website:
-    <<: *node
-    command: pnpm --filter @zgate/website dev
-    environment: *website-env
-    ports:
-      - "127.0.0.1:3002:3002"
-    depends_on:
-      website-migrate:
-        condition: service_completed_successfully
-
-  api:
-    <<: *node
-    command: pnpm --filter @zgate/elearning-backend dev
-    env_file: ./elearning/backend/.env
-    environment:
-      DATABASE_URL: postgres://zgate:zgate_dev@postgres:5432/zgate_dev
-      WEB_ORIGIN: http://localhost:3001
-    ports:
-      - "127.0.0.1:3000:3000"
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-
-  ops:
-    <<: *node
-    command: pnpm --filter @zgate/ops dev
-    environment:
-      # Browser-facing values: the browser calls these, so they stay as
-      # published host ports, not compose service names.
-      NEXT_PUBLIC_API_URL: http://localhost:3000
-      NEXT_PUBLIC_SITE_URL: http://localhost:3001
-    ports:
-      - "127.0.0.1:3001:3001"
-    depends_on:
-      install:
-        condition: service_completed_successfully
-      api:
-        condition: service_started
-
-volumes:
-  pgdata:
-  node_modules:
-  api_node_modules:
-  ops_node_modules:
-  ops_next:
-  website_node_modules:
-  website_next:
-  pnpm_store:
+include:
+  - path:
+      - infra/compose/base.yml
+      - infra/compose/website.yml
+      - infra/compose/elearning.yml
+      - infra/compose/legacy.yml
