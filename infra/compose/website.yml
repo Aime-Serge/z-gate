@@ -16,8 +16,8 @@ x-node: &node
     - shared_ui_node_modules:/repo/shared/ui/node_modules
     - shared_contracts_node_modules:/repo/shared/contracts/node_modules
 
-x-website-env:
-  &website-env # The website's own database and user (postgres-init/01-product-databases.sql).
+# The website's own database and user (postgres-init/01-product-databases.sql).
+x-website-env: &website-env
   DATABASE_URL: postgres://zgate_website:zgate_website_dev@postgres:5432/zgate_website
   # Dev-only throwaway value, like the database password.
   PAYLOAD_SECRET: dev-only-payload-secret-not-for-any-real-environment
