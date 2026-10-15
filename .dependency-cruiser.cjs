@@ -13,7 +13,7 @@
  *
  * Run: pnpm lint:boundaries (CI runs it in every product workflow).
  * Imports are followed to their real path, so a workspace-package import
- * (e.g. `@zgate/website`) is caught the same as a relative `../../website`.
+ * (e.g. `@zgate/website-frontend`) is caught the same as a relative `../../website`.
  *
  * @type {import('dependency-cruiser').IConfiguration}
  */
