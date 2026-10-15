@@ -24,7 +24,8 @@
         "SITE_URL",
         "ADMIN_URL",
         "CMS_URL"
-      ]
+      ],
+      "passThroughEnv": ["CI"]
     },
     "dev": {
       "cache": false,
