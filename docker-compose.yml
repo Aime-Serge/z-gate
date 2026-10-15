@@ -1,19 +1,13 @@
-# Z-GATE local development - both products at once:
+# Z-GATE local development - both products' stacks in one file.
 #
-#   cp elearning/.env.example elearning/backend/.env
-#   docker compose up                    # add --profile legacy for the ops portal
-#     -> website:      http://localhost:3002   (CMS: http://localhost:3004/admin)
-#     -> e-learning:   http://localhost:3003   (frontend) / :3000 (API)
-#     -> legacy ops:   http://localhost:3001   (--profile legacy only)
-#     -> postgres:     localhost:5432          (databases zgate_website, zgate_elearning)
+# Prefer one product at a time on a small machine
+# (docs/DEVELOPMENT_LOW_MEMORY.md):
+#   docker compose -f website/deploy/compose.yml up -d
 #
-# The files are listed as ONE include entry so Compose merges them into a
-# single model, the same as `-f a -f b`: the identical postgres and install
-# services both files define become one of each. One product only:
-#   docker compose -f infra/compose/website.yml up
-#   docker compose -f infra/compose/elearning.yml up
+# Each entry is included on its own, so every file resolves its relative
+# paths from its own folder and keeps its own Postgres, volumes and
+# services; nothing is shared between the two products.
 
 include:
-  - path:
-      - infra/compose/website.yml
-      - infra/compose/elearning.yml
+  - path: website/deploy/compose.yml
+  - path: infra/compose/elearning.yml
