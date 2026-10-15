@@ -19,9 +19,10 @@ out/
 *.log
 npm-debug.log*
 
-# Editor / OS
+# Editor / OS (the shared low-memory editor settings are committed)
 .vscode/*
 !.vscode/extensions.json
+!.vscode/settings.json
 .idea/
 .DS_Store
 Thumbs.db
@@ -35,6 +36,9 @@ storage/
 
 # TypeScript incremental build cache
 *.tsbuildinfo
+
+# ESLint cache (lint --cache)
+.eslintcache
 
 # Playwright artifacts
 test-results/

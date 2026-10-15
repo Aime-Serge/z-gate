@@ -22,3 +22,7 @@ website/backend/src/migrations/**
 # Playwright artifacts
 **/test-results
 **/playwright-report
+
+# Caches
+**/.eslintcache
+*.tsbuildinfo
