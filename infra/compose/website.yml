@@ -1,7 +1,9 @@
-# Website (website/app: Next.js + Payload CMS) - local development.
+# Website - local development: the public site (website/frontend) and the
+# CMS (website/backend) as two services, as in production.
 #
 #   docker compose -f infra/compose/website.yml up
-#     -> http://localhost:3002   (CMS at /admin)
+#     -> public site: http://localhost:3002
+#     -> CMS:         http://localhost:3004/admin
 #
 # Self-contained: it brings its own Postgres and install services. The
 # e-learning file (elearning.yml) defines the same two services. Keep postgres
@@ -21,19 +23,30 @@ x-node: &node
     - ../..:/repo
     - node_modules:/repo/node_modules
     - pnpm_store:/pnpm/store
-    - website_node_modules:/repo/website/app/node_modules
-    - website_next:/repo/website/app/.next
+    - website_backend_node_modules:/repo/website/backend/node_modules
+    - website_backend_next:/repo/website/backend/.next
+    - website_frontend_node_modules:/repo/website/frontend/node_modules
+    - website_frontend_next:/repo/website/frontend/.next
     - shared_config_node_modules:/repo/shared/config/node_modules
     - shared_ui_node_modules:/repo/shared/ui/node_modules
     - shared_contracts_node_modules:/repo/shared/contracts/node_modules
 
-# The website's own database and user (postgres-init/01-product-databases.sql).
-x-website-env: &website-env
+# Dev-only throwaway values, like the database password. The two apps
+# share the lead-intake token and the webhook secret.
+x-shared-secrets: &shared-secrets
+  LEAD_INTAKE_TOKEN: dev-only-lead-intake-token-not-for-real-use
+  REVALIDATE_SECRET: dev-only-revalidate-secret-not-for-real-use
+
+# The CMS: the website's own database and user
+# (postgres-init/01-product-databases.sql).
+x-backend-env: &backend-env
+  <<: *shared-secrets
   DATABASE_URL: postgres://zgate_website:zgate_website_dev@postgres:5432/zgate_website
-  # Dev-only throwaway value, like the database password.
   PAYLOAD_SECRET: dev-only-payload-secret-not-for-any-real-environment
-  SITE_URL: http://localhost:3002
-  MEDIA_DIR: /repo/website/app/media
+  ADMIN_URL: http://localhost:3004
+  # Container to container: the frontend's service name, not localhost.
+  REVALIDATE_URL: http://website-frontend:3002/api/revalidate
+  MEDIA_DIR: /repo/website/backend/media
 
 services:
   # --- Also defined in elearning.yml (see header) ------------------------
@@ -64,30 +77,47 @@ services:
 
   website-migrate:
     <<: *node
-    command: pnpm --filter @zgate/website migrate
-    environment: *website-env
+    command: pnpm --filter @zgate/website-backend migrate
+    environment: *backend-env
     depends_on:
       postgres:
         condition: service_healthy
       install:
         condition: service_completed_successfully
 
-  website:
+  website-backend:
     <<: *node
-    command: pnpm --filter @zgate/website dev
-    environment: *website-env
+    command: pnpm --filter @zgate/website-backend dev
+    environment: *backend-env
     ports:
-      - "127.0.0.1:3002:3002"
+      - "127.0.0.1:3004:3004"
     depends_on:
       website-migrate:
         condition: service_completed_successfully
+
+  website-frontend:
+    <<: *node
+    command: pnpm --filter @zgate/website-frontend dev
+    environment:
+      <<: *shared-secrets
+      SITE_URL: http://localhost:3002
+      # Server-side calls only (the browser never talks to the CMS), so
+      # the CMS's service name.
+      CMS_URL: http://website-backend:3004
+    ports:
+      - "127.0.0.1:3002:3002"
+    depends_on:
+      website-backend:
+        condition: service_started
 
 volumes:
   pgdata:
   node_modules:
   pnpm_store:
-  website_node_modules:
-  website_next:
+  website_backend_node_modules:
+  website_backend_next:
+  website_frontend_node_modules:
+  website_frontend_next:
   shared_config_node_modules:
   shared_ui_node_modules:
   shared_contracts_node_modules:

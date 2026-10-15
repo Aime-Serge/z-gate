@@ -2,7 +2,7 @@
 #
 #   cp elearning/.env.example elearning/backend/.env
 #   docker compose up                    # add --profile legacy for the ops portal
-#     -> website:      http://localhost:3002   (CMS at /admin)
+#     -> website:      http://localhost:3002   (CMS: http://localhost:3004/admin)
 #     -> e-learning:   http://localhost:3003   (frontend) / :3000 (API)
 #     -> legacy ops:   http://localhost:3001   (--profile legacy only)
 #     -> postgres:     localhost:5432          (databases zgate_website, zgate_elearning)

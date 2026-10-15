@@ -6,9 +6,14 @@
  *   shared/    -X->  any product       shared code stays product-agnostic
  *   anything   -X->  legacy/           the frozen v1 portal is never a dependency
  *
+ * Inside the website, the public site and the CMS are separate apps:
+ *   website/frontend  -->  website/backend/src/contracts/ only (HTTP otherwise)
+ *   website/backend   -X-> website/frontend
+ *   frontend, contracts  -X->  Payload at runtime
+ *
  * Run: pnpm lint:boundaries (CI runs it in every product workflow).
  * Imports are followed to their real path, so a workspace-package import
- * (e.g. `@zgate/website`) is caught the same as a relative `../../website`.
+ * (e.g. `@zgate/website-frontend`) is caught the same as a relative `../../website`.
  *
  * @type {import('dependency-cruiser').IConfiguration}
  */
@@ -30,6 +35,49 @@ module.exports = {
       from: { path: "^elearning/" },
       to: { path: "^website/" },
     },
+    // Inside the website: the public site and the CMS are separate apps
+    // that talk over HTTP. The frontend may use only the CMS's contracts
+    // (types, schemas, webhook signing), and those stay free of Payload so
+    // no CMS code ever runs in the public app.
+    {
+      name: "website-frontend-uses-only-backend-contracts",
+      comment:
+        "website/frontend talks to the CMS over HTTP. Import @zgate/website-backend/contracts, nothing else from website/backend.",
+      severity: "error",
+      from: { path: "^website/frontend/" },
+      to: { path: "^website/backend/", pathNot: "^website/backend/src/contracts/" },
+    },
+    {
+      name: "website-backend-must-not-import-frontend",
+      comment: "The CMS never depends on the public site.",
+      severity: "error",
+      from: { path: "^website/backend/" },
+      to: { path: "^website/frontend/" },
+    },
+    {
+      name: "website-contracts-stay-self-contained",
+      comment:
+        "Contracts may use only each other and the generated content types, so importing them never pulls CMS code into the frontend.",
+      severity: "error",
+      from: { path: "^website/backend/src/contracts/" },
+      to: {
+        path: "^website/backend/",
+        pathNot: "^website/backend/src/(contracts/|payload-types\\.ts$)",
+      },
+    },
+    {
+      name: "no-payload-runtime-in-website-frontend-or-contracts",
+      comment:
+        "Only the CMS runs Payload. The frontend may use @payloadcms/richtext-lexical (its React renderer imports only react) and nothing else from Payload.",
+      severity: "error",
+      from: { path: "^website/(frontend/|backend/src/contracts/)" },
+      to: {
+        dependencyTypesNot: ["type-only"],
+        // Installed (resolved into node_modules) or not (a bare name).
+        path: "(^|/node_modules/)(payload|@payloadcms/[^/]+)(/|$)",
+        pathNot: "@payloadcms/richtext-lexical(/|$)",
+      },
+    },
     {
       name: "shared-must-not-import-products",
       comment:
@@ -48,8 +96,12 @@ module.exports = {
   ],
   options: {
     doNotFollow: { path: "node_modules" },
+    // node_modules is only not followed (doNotFollow above), not excluded,
+    // so the rules can see which packages product code imports. `dist` is
+    // excluded only for our own packages: most npm packages resolve into a
+    // dist/ folder, and excluding those would hide the import itself.
     exclude: {
-      path: "(^|/)(node_modules|\\.next|dist|coverage|test-results|playwright-report|media)/",
+      path: "(^|/)(\\.next|coverage|test-results|playwright-report|media)/|^(website|elearning|shared|legacy)/[^/]+/dist/",
     },
     tsPreCompilationDeps: true,
     enhancedResolveOptions: {

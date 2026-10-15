@@ -22,7 +22,8 @@
         "SESSION_SALT",
         "PAYLOAD_SECRET",
         "SITE_URL",
-        "ADMIN_URL"
+        "ADMIN_URL",
+        "CMS_URL"
       ]
     },
     "dev": {
