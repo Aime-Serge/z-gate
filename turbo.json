@@ -11,6 +11,18 @@
     "typecheck": {
       "dependsOn": ["^build"]
     },
+    "@zgate/website-frontend#typecheck": {
+      "dependsOn": ["^build", "build"]
+    },
+    "@zgate/website-backend#typecheck": {
+      "dependsOn": ["^build", "build"]
+    },
+    "@zgate/elearning-frontend#typecheck": {
+      "dependsOn": ["^build", "build"]
+    },
+    "@zgate/ops#typecheck": {
+      "dependsOn": ["^build", "build"]
+    },
     "lint": {
       "dependsOn": ["^build"]
     },
