@@ -1,8 +1,13 @@
 # Z-GATE local development - both products' stacks in one file.
 #
-# Prefer one product at a time on a small machine
+# On a small machine, run one product at a time instead
 # (docs/DEVELOPMENT_LOW_MEMORY.md):
-#   docker compose -f website/deploy/compose.yml up -d
+#   docker compose -f website/deploy/compose.yml up -d      # website Postgres :5432
+#   docker compose -f elearning/deploy/compose.yml up -d    # e-learning Postgres :5433
+#
+# Here, plain `docker compose up -d` starts both Postgres containers only
+# (hybrid mode: apps run natively with `pnpm dev:website` / `pnpm dev:elearning`).
+# `--profile full` adds every app container; `--profile legacy` the ops portal.
 #
 # Each entry is included on its own, so every file resolves its relative
 # paths from its own folder and keeps its own Postgres, volumes and
