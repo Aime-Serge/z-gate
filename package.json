@@ -8,13 +8,16 @@
   },
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
+    "dev:website": "node platform/scripts/dev.mjs website",
+    "dev:elearning": "node platform/scripts/dev.mjs elearning",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
+    "test": "turbo run test --concurrency=2",
     "format": "prettier --check .",
     "format:write": "prettier --write .",
     "db:migrate": "pnpm --filter @zgate/elearning-backend db:migrate",
+    "db:migrate:website": "node platform/scripts/migrate.mjs website",
+    "db:migrate:elearning": "node platform/scripts/migrate.mjs elearning",
     "lint:boundaries": "depcruise website elearning shared legacy --config .dependency-cruiser.cjs --output-type err-long"
   },
   "devDependencies": {

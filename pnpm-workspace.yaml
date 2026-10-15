@@ -1,5 +1,7 @@
-# Two products, one frozen legacy app, and the shared code both products
-# may use (docs/architecture/ADR/ADR-007-separate-product-backends.md).
+# Two self-contained products (website/, elearning/), the shared code both
+# may use, and the frozen legacy app (docs/architecture/ADR/ADR-008-self-
+# contained-products.md). Only folders with a package.json are packages, so
+# deploy/, database/ and docs/ inside each product are not.
 packages:
   - "website/*"
   - "elearning/*"

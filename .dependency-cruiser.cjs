@@ -79,6 +79,14 @@ module.exports = {
       },
     },
     {
+      name: "elearning-worker-must-not-import-backend",
+      comment:
+        "The worker and the API share the database schema, not code. Put shared code in shared/ instead.",
+      severity: "error",
+      from: { path: "^elearning/worker/" },
+      to: { path: "^elearning/backend/" },
+    },
+    {
       name: "shared-must-not-import-products",
       comment:
         "shared/ is used by both products, so it can't depend on either of them (or on legacy/).",

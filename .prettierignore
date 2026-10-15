@@ -9,6 +9,8 @@ package-lock.json
 # Reviewed documentation deliverables - formatting them would make
 # unrelated commits touch dozens of files.
 docs/**
+website/docs/**
+elearning/docs/**
 
 # Approved brand/business source documents - not ours to reformat.
 zgate-brand-identity(1).html
@@ -22,3 +24,7 @@ website/backend/src/migrations/**
 # Playwright artifacts
 **/test-results
 **/playwright-report
+
+# Caches
+**/.eslintcache
+*.tsbuildinfo
