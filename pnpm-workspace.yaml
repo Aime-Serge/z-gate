@@ -29,6 +29,13 @@ overrides:
   # bypass in BalancedPool). 7.29.1 (2026-09-04) is a patch release on the
   # same line. Remove once Payload depends on undici >= 7.29.1.
   undici: 7.29.1
+  # drizzle-kit (via Payload's Postgres adapter) brings esbuild 0.25.12 and,
+  # through @esbuild-kit, 0.18.20: Go binaries built with Go 1.23 / 1.20,
+  # whose standard library has HIGH/CRITICAL CVEs (Trivy, website images).
+  # 0.28.2 (2026-08-08, built with Go 1.26.5) is already in the lockfile via
+  # Vite and tsx. Remove once drizzle-kit depends on esbuild >= 0.28.
+  "drizzle-kit>esbuild": 0.28.2
+  "@esbuild-kit/core-utils>esbuild": 0.28.2
 
 # Advisories with no patched release usable here, reviewed and accepted.
 # Re-check on every dependency update; delete the entry the moment a fix
