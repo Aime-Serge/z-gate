@@ -17,7 +17,7 @@ website/       Corporate website: app/, .env.example, README.md
 elearning/     E-learning platform: frontend/, backend/, .env.example, README.md
 shared/        The only code both products may use: config/, ui/, contracts/
 legacy/        Frozen v1 operations portal: ops/
-infra/         docker/ (dev image), compose/ (local stacks), proxy/ (Caddyfile)
+infra/         docker/ (dev image), compose/ (local stacks), proxy/ (Caddyfile, production stack)
 docs/          platform-v2/ (current plan), runbooks/, and every earlier phase's output
 ```
 
@@ -35,10 +35,10 @@ docker compose up                                  # or see docs/DEVELOPER_GUIDE
 
 - Website: http://localhost:3002 (CMS admin at `/admin`; load the approved copy once with `pnpm --filter @zgate/website seed`)
 - E-learning: http://localhost:3003 (frontend), http://localhost:3000 (API: `GET /api/health`, `GET /api/ready`)
-- Ops portal: http://localhost:3001
+- Ops portal: http://localhost:3001 (only with `--profile legacy`)
 - Postgres: `localhost:5432`, databases `zgate_website` and `zgate_elearning` (dev-only credentials)
 
-One product only: `docker compose -f infra/compose/base.yml -f infra/compose/website.yml up` (or `elearning.yml`).
+One product only: `docker compose -f infra/compose/website.yml up` (or `elearning.yml`; add `--profile legacy` for the ops portal).
 
 Checks: `pnpm lint:boundaries && pnpm lint && pnpm typecheck && pnpm test && pnpm build`. Full detail: `docs/DEVELOPER_GUIDE.md`.
 
