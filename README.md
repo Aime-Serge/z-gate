@@ -1,36 +1,47 @@
-# Z-GATE Digital Platform
+# Z-GATE Digital Products
 
-"Where Business Meets Technology." Z-GATE LTD is a Rwandan company operating four integrated divisions — Advisory, Academy, Tech, and Data. This repository is the digital platform built to support that business: a public marketing website, lead-capture/CRM, a staff operations platform, a client portal, and a full Academy course/enrollment workflow.
+"Where Business Meets Technology." Z-GATE LTD is a Rwandan company with four divisions: Advisory, Academy, Tech and Data. This repository holds its digital products. It is moving from one all-in-one web app (v1) to **separate products with separate backends**:
 
-## Start here
+| Product                                                   | Folder                                               | Status                                                |
+| --------------------------------------------------------- | ---------------------------------------------------- | ----------------------------------------------------- |
+| **Corporate website** (full-stack: Next.js + Payload CMS) | `website/app`                                        | CMS, pages, forms and launch hardening done           |
+| **E-learning platform**                                   | `elearning/frontend` (UI), `elearning/backend` (API) | API carried over from v1; UI is a deployable skeleton |
+| **Operations portal** (v1 client portal + staff console)  | `legacy/ops`                                         | Moved as-is, feature-frozen                           |
 
-- **New to this repo?** Read `docs/SYSTEM_OVERVIEW.md` first, then `docs/DEVELOPER_GUIDE.md` for setup.
-- **Taking this over, or auditing it?** `docs/HANDOVER.md` is the accurate, current state — what's built, what's not, and what's still blocking a real production launch. Read it before trusting any status claim elsewhere in this repo, including in this file.
-- **Want the full history?** The `docs/` tree is the project's real history, phase by phase — `docs/discovery/` through `docs/backend/` for how this system was designed before it was built, plus `docs/qa/`, `docs/security/`, `docs/performance/`, `docs/devops/`, and `docs/release/` for how it was verified afterward.
+The plan, assessment and decisions are in **`docs/platform-v2/`** (start with its `README.md`). The product split is `docs/architecture/ADR/ADR-007-separate-product-backends.md`. The final v1 state is preserved at the git tag `v1-final`.
 
 ## Repository structure
 
-```
-backend/           Fastify + Kysely + PostgreSQL API (docs/backend/, docs/ARCHITECTURE.md)
-frontend/          Public website + portal + staff platform — Next.js (docs/frontend/)
-docs/              Every phase's approved output, plus the top-level handover docs below
+```text
+website/       Corporate website: app/, .env.example, README.md
+elearning/     E-learning platform: frontend/, backend/, .env.example, README.md
+shared/        The only code both products may use: config/, ui/, contracts/
+legacy/        Frozen v1 operations portal: ops/
+infra/         docker/ (dev image), compose/ (local stacks), proxy/ (Caddyfile, production stack)
+docs/          platform-v2/ (current plan), runbooks/, and every earlier phase's output
 ```
 
-Two independent packages, each with its own `package.json`/lockfile — deliberately not an npm-workspaces monorepo (`docs/frontend/FRONTEND_ARCHITECTURE.md`).
+pnpm workspace + Turborepo, one lockfile. Each product has its own database, environment template, Dockerfiles, Compose file and CI workflow (`.github/workflows/website.yml`, `elearning.yml`, `legacy.yml`), and deploys independently.
 
-## Quick start (Docker Compose — the primary way to develop this project)
+**Boundaries are enforced:** `website/` and `elearning/` never import each other, both import only from `shared/`, and nothing imports `legacy/`. `pnpm lint:boundaries` checks this in every CI workflow.
+
+## Quick start
 
 ```bash
-cp backend/.env.example backend/.env
-docker compose up
+corepack enable                                    # once; pnpm version comes from package.json
+cp elearning/.env.example elearning/backend/.env
+docker compose up                                  # or see docs/DEVELOPER_GUIDE.md for host setup
 ```
 
-- Website: http://localhost:3001
-- API: http://localhost:3000 (health check: `GET /api/health`, readiness: `GET /api/ready`)
-- Postgres: `localhost:5432` (dev-only throwaway credentials)
+- Website: http://localhost:3002 (CMS admin at `/admin`; load the approved copy once with `pnpm --filter @zgate/website seed`)
+- E-learning: http://localhost:3003 (frontend), http://localhost:3000 (API: `GET /api/health`, `GET /api/ready`)
+- Ops portal: http://localhost:3001 (only with `--profile legacy`)
+- Postgres: `localhost:5432`, databases `zgate_website` and `zgate_elearning` (dev-only credentials)
 
-Full detail, including the host-level fallback if Docker isn't available to you: `docs/DEVELOPER_GUIDE.md` and `docs/devops/DEVELOPMENT_ENVIRONMENT.md`.
+One product only: `docker compose -f infra/compose/website.yml up` (or `elearning.yml`; add `--profile legacy` for the ops portal).
+
+Checks: `pnpm lint:boundaries && pnpm lint && pnpm typecheck && pnpm test && pnpm build`. Full detail: `docs/DEVELOPER_GUIDE.md`.
 
 ## Current status
 
-See `docs/HANDOVER.md` for the complete, current picture — code quality is strong (lint/typecheck/tests/build clean on both packages, real CI running on GitHub Actions), but this platform is **not yet cleared for production deployment**: an independent security audit and a commercial-readiness review both found real, unresolved issues after the initial release-candidate phase. Do not treat this repository as "done" without reading that document first.
+v1 was never deployed to production, and its release blockers are still open. They are tracked in `docs/HANDOVER.md`, `docs/SECURITY_GUIDE.md` and `docs/platform-v2/05-SECURITY-COMPLIANCE.md`. Don't treat any part of this repository as production-ready without reading those first. The website's deploy procedure is `docs/runbooks/WEBSITE_DEPLOY.md`.

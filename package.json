@@ -1,0 +1,27 @@
+{
+  "name": "zgate",
+  "private": true,
+  "description": "Z-GATE digital products monorepo - corporate website, e-learning platform and shared packages (docs/platform-v2/)",
+  "packageManager": "pnpm@10.34.6",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --check .",
+    "format:write": "prettier --write .",
+    "db:migrate": "pnpm --filter @zgate/elearning-backend db:migrate",
+    "lint:boundaries": "depcruise website elearning shared legacy --config .dependency-cruiser.cjs --output-type err-long"
+  },
+  "devDependencies": {
+    "@zgate/config": "workspace:*",
+    "dependency-cruiser": "18.4.0",
+    "prettier": "3.9.6",
+    "turbo": "2.11.5",
+    "typescript": "^5.9.3"
+  }
+}

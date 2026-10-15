@@ -1,0 +1,93 @@
+# Website (website/app: Next.js + Payload CMS) - local development.
+#
+#   docker compose -f infra/compose/website.yml up
+#     -> http://localhost:3002   (CMS at /admin)
+#
+# Self-contained: it brings its own Postgres and install services. The
+# e-learning file (elearning.yml) defines the same two services. Keep postgres
+# identical (install differs only in the volumes it mounts, which Compose
+# unions by target), so running both files together (root docker-compose.yml)
+# merges them into one Postgres server and one install job.
+#
+# Paths are relative to this directory (infra/compose/). Every port binds to
+# 127.0.0.1 only (docs/SECURITY_GUIDE.md F-7).
+
+x-node: &node
+  build:
+    context: ../..
+    dockerfile: infra/docker/dev.Dockerfile
+  # Linux dependencies stay in named volumes, never on the host mount.
+  volumes:
+    - ../..:/repo
+    - node_modules:/repo/node_modules
+    - pnpm_store:/pnpm/store
+    - website_node_modules:/repo/website/app/node_modules
+    - website_next:/repo/website/app/.next
+    - shared_config_node_modules:/repo/shared/config/node_modules
+    - shared_ui_node_modules:/repo/shared/ui/node_modules
+    - shared_contracts_node_modules:/repo/shared/contracts/node_modules
+
+# The website's own database and user (postgres-init/01-product-databases.sql).
+x-website-env: &website-env
+  DATABASE_URL: postgres://zgate_website:zgate_website_dev@postgres:5432/zgate_website
+  # Dev-only throwaway value, like the database password.
+  PAYLOAD_SECRET: dev-only-payload-secret-not-for-any-real-environment
+  SITE_URL: http://localhost:3002
+  MEDIA_DIR: /repo/website/app/media
+
+services:
+  # --- Also defined in elearning.yml (see header) ------------------------
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: zgate
+      POSTGRES_PASSWORD: zgate_dev
+      POSTGRES_DB: zgate_dev
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Creates zgate_website and zgate_elearning, each with its own user.
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zgate -d zgate_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # One-shot: install workspace dependencies once, before any app starts,
+  # so two services never race to write the same node_modules volume.
+  install:
+    <<: *node
+    command: pnpm install --frozen-lockfile
+  # -------------------------------------------------------------------------
+
+  website-migrate:
+    <<: *node
+    command: pnpm --filter @zgate/website migrate
+    environment: *website-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      install:
+        condition: service_completed_successfully
+
+  website:
+    <<: *node
+    command: pnpm --filter @zgate/website dev
+    environment: *website-env
+    ports:
+      - "127.0.0.1:3002:3002"
+    depends_on:
+      website-migrate:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:
+  node_modules:
+  pnpm_store:
+  website_node_modules:
+  website_next:
+  shared_config_node_modules:
+  shared_ui_node_modules:
+  shared_contracts_node_modules:

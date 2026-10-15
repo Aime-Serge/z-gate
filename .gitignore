@@ -4,6 +4,11 @@ node_modules/
 # Build output
 dist/
 coverage/
+.next/
+out/
+
+# Turborepo local cache
+.turbo/
 
 # Environment - never commit real secrets/config
 .env
@@ -27,3 +32,10 @@ Thumbs.db
 # Local-disk deliverable storage (lib/storage.ts's dev/test fallback) -
 # never real Client documents committed to version control.
 storage/
+
+# TypeScript incremental build cache
+*.tsbuildinfo
+
+# Playwright artifacts
+test-results/
+playwright-report/
