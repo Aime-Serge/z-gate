@@ -1,0 +1,47 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "ui": "stream",
+  "globalDependencies": [".prettierrc.json"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "env": ["NEXT_PUBLIC_*"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
+    "@zgate/website-frontend#typecheck": {
+      "dependsOn": ["^build", "build"]
+    },
+    "@zgate/website-backend#typecheck": {
+      "dependsOn": ["^build", "build"]
+    },
+    "@zgate/elearning-frontend#typecheck": {
+      "dependsOn": ["^build", "build"]
+    },
+    "@zgate/ops#typecheck": {
+      "dependsOn": ["^build", "build"]
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "env": [
+        "DATABASE_URL",
+        "SESSION_SECRET",
+        "SESSION_SALT",
+        "PAYLOAD_SECRET",
+        "SITE_URL",
+        "ADMIN_URL",
+        "CMS_URL"
+      ],
+      "passThroughEnv": ["CI"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}

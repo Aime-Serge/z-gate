@@ -1,36 +1,47 @@
-# Z-GATE Digital Platform
+# Z-GATE Digital Products
 
-"Where Business Meets Technology." Z-GATE LTD is a Rwandan company operating four integrated divisions — Advisory, Academy, Tech, and Data. This repository is the digital platform built to support that business: a public marketing website, lead-capture/CRM, a staff operations platform, a client portal, and a full Academy course/enrollment workflow.
+"Where Business Meets Technology." Z-GATE LTD is a Rwandan company with four divisions: Advisory, Academy, Tech and Data. This repository holds its digital products: **two self-contained products** that share only a small code layer and the edge proxy.
 
-## Start here
+| Product                                                  | Folder                                                        | Status                                                |
+| -------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------- |
+| **Corporate website** (Next.js site + Payload CMS)       | `website/`: `frontend/` (site), `backend/` (CMS)              | CMS, pages, forms and launch hardening done           |
+| **E-learning platform**                                  | `elearning/`: `frontend/`, `backend/` (API), `worker/` (jobs) | API carried over from v1; UI and worker are skeletons |
+| **Operations portal** (v1 client portal + staff console) | `legacy/ops`                                                  | Feature-frozen; retired once its screens are rebuilt  |
 
-- **New to this repo?** Read `docs/SYSTEM_OVERVIEW.md` first, then `docs/DEVELOPER_GUIDE.md` for setup.
-- **Taking this over, or auditing it?** `docs/HANDOVER.md` is the accurate, current state — what's built, what's not, and what's still blocking a real production launch. Read it before trusting any status claim elsewhere in this repo, including in this file.
-- **Want the full history?** The `docs/` tree is the project's real history, phase by phase — `docs/discovery/` through `docs/backend/` for how this system was designed before it was built, plus `docs/qa/`, `docs/security/`, `docs/performance/`, `docs/devops/`, and `docs/release/` for how it was verified afterward.
+The plan, assessment and decisions are in **`docs/platform-v2/`** (start with its `README.md`). The product split is ADR-007 and the self-contained layout ADR-008 (`docs/architecture/ADR/`). Both backends are planned to move to Django (Python); see ADR-008's last section. The final v1 state is preserved at the git tag `v1-final`.
 
 ## Repository structure
 
-```
-backend/           Fastify + Kysely + PostgreSQL API (docs/backend/, docs/ARCHITECTURE.md)
-frontend/          Public website + portal + staff platform — Next.js (docs/frontend/)
-docs/              Every phase's approved output, plus the top-level handover docs below
+```text
+website/      frontend/  backend/  database/  deploy/  docs/  README.md
+elearning/    frontend/  backend/  worker/  database/  deploy/  docs/  README.md
+shared/       the only code both products may use: config/, ui/, contracts/
+platform/     the only shared runtime: edge/ (Caddyfile), observability/, scripts/
+legacy/ops/   frozen v1 portal
+docs/         cross-product docs: platform-v2/ (current plan), architecture/, earlier phases
 ```
 
-Two independent packages, each with its own `package.json`/lockfile — deliberately not an npm-workspaces monorepo (`docs/frontend/FRONTEND_ARCHITECTURE.md`).
+Each product owns its Postgres (`database/`: roles, configs, backup scripts), its Compose files and env templates (`deploy/`), its Dockerfiles and its CI workflow. A product never imports from the other, both may import from `shared/`, and nothing imports from `legacy/`. `pnpm lint:boundaries` enforces this in CI. Workflows: `.github/workflows/website.yml`, `elearning.yml`, `shared.yml`, `legacy.yml`.
 
-## Quick start (Docker Compose — the primary way to develop this project)
+## Quick start (one product at a time)
 
 ```bash
-cp backend/.env.example backend/.env
-docker compose up
+corepack enable                                   # once; the pnpm version comes from package.json
+pnpm install
+
+docker compose -f website/deploy/compose.yml up -d        # the website's Postgres (localhost:5432)
+cp website/deploy/env/dev.env.example website/backend/.env
+cp website/deploy/env/dev.env.example website/frontend/.env
+pnpm db:migrate:website && pnpm --filter @zgate/website-backend seed
+pnpm dev:website                                  # site http://localhost:3002, CMS http://localhost:3004/admin
 ```
 
-- Website: http://localhost:3001
-- API: http://localhost:3000 (health check: `GET /api/health`, readiness: `GET /api/ready`)
-- Postgres: `localhost:5432` (dev-only throwaway credentials)
+E-learning works the same way: `elearning/deploy/compose.yml` (Postgres on 5433), `elearning/deploy/env/dev.env.example` → `elearning/backend/.env`, `pnpm db:migrate:elearning`, then `pnpm dev:elearning` (API :3000, frontend :3003, worker :3005).
 
-Full detail, including the host-level fallback if Docker isn't available to you: `docs/DEVELOPER_GUIDE.md` and `docs/devops/DEVELOPMENT_ENVIRONMENT.md`.
+On an 8 GB machine, read **`docs/DEVELOPMENT_LOW_MEMORY.md`** first. Full setup, containers-for-everything (`--profile full`) and all commands: `docs/DEVELOPER_GUIDE.md`.
+
+Checks: `pnpm lint:boundaries`, then `pnpm -r --workspace-concurrency=1 run <lint|typecheck|test|build>` locally (`pnpm lint` etc. use Turborepo, which CI runs).
 
 ## Current status
 
-See `docs/HANDOVER.md` for the complete, current picture — code quality is strong (lint/typecheck/tests/build clean on both packages, real CI running on GitHub Actions), but this platform is **not yet cleared for production deployment**: an independent security audit and a commercial-readiness review both found real, unresolved issues after the initial release-candidate phase. Do not treat this repository as "done" without reading that document first.
+v1 was never deployed to production, and its release blockers are still open. They are tracked in `docs/HANDOVER.md`, `docs/SECURITY_GUIDE.md` and `docs/platform-v2/05-SECURITY-COMPLIANCE.md`. Don't treat any part of this repository as production-ready without reading those first. The website's deploy procedure is `website/docs/WEBSITE_DEPLOY.md`.
