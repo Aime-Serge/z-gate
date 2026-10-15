@@ -10,4 +10,4 @@
 
 include:
   - path: website/deploy/compose.yml
-  - path: infra/compose/elearning.yml
+  - path: elearning/deploy/compose.yml

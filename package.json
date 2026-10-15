@@ -16,6 +16,7 @@
     "format:write": "prettier --write .",
     "db:migrate": "pnpm --filter @zgate/elearning-backend db:migrate",
     "db:migrate:website": "node platform/scripts/migrate.mjs website",
+    "db:migrate:elearning": "node platform/scripts/migrate.mjs elearning",
     "lint:boundaries": "depcruise website elearning shared legacy --config .dependency-cruiser.cjs --output-type err-long"
   },
   "devDependencies": {
