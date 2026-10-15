@@ -9,3 +9,6 @@
 # workspace); the CMS sends only staff notifications to a configured
 # address. Remove once the Payload adapter supports nodemailer >= 10.0.5.
 CVE-2026-90776
+# The same nodemailer advisories by their GHSA IDs (Trivy reports either).
+GHSA-v53p-9fqp-m79j
+GHSA-prgh-xp8r-p3m5
