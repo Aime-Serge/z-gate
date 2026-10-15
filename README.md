@@ -44,4 +44,4 @@ Checks: `pnpm lint:boundaries && pnpm lint && pnpm typecheck && pnpm test && pnp
 
 ## Current status
 
-v1 was never deployed to production, and its release blockers are still open. They are tracked in `docs/HANDOVER.md`, `docs/SECURITY_GUIDE.md` and `docs/platform-v2/05-SECURITY-COMPLIANCE.md`. Don't treat any part of this repository as production-ready without reading those first. The website's deploy procedure is `docs/runbooks/WEBSITE_DEPLOY.md`.
+v1 was never deployed to production, and its release blockers are still open. They are tracked in `docs/HANDOVER.md`, `docs/SECURITY_GUIDE.md` and `docs/platform-v2/05-SECURITY-COMPLIANCE.md`. Don't treat any part of this repository as production-ready without reading those first. The website's deploy procedure is `website/docs/WEBSITE_DEPLOY.md`.
