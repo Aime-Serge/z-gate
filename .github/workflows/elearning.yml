@@ -148,8 +148,10 @@ jobs:
           fi
           if [ "$PUBLISH" = "true" ]; then
             if [ -z "$LEARN_PUBLIC_API_URL" ] || [ -z "$LEARN_PUBLIC_SITE_URL" ]; then
-              echo "::error::Set repository variables ELEARNING_PUBLIC_API_URL and ELEARNING_PUBLIC_SITE_URL before publishing the e-learning frontend image."
-              exit 1
+              echo "::warning::Not publishing the e-learning frontend image: set repository variables ELEARNING_PUBLIC_API_URL and ELEARNING_PUBLIC_SITE_URL (its public URLs are built into the image). Built and scanned with placeholders instead."
+              echo "publish=false" >> "$GITHUB_OUTPUT"
+              LEARN_PUBLIC_API_URL="https://learn.ci.invalid"
+              LEARN_PUBLIC_SITE_URL="https://learn.ci.invalid"
             fi
           else
             LEARN_PUBLIC_API_URL="https://learn.ci.invalid"
@@ -189,7 +191,7 @@ jobs:
           exit-code: "1"
 
       - name: Log in to GHCR
-        if: env.PUBLISH == 'true'
+        if: env.PUBLISH == 'true' && steps.args.outputs.publish != 'false'
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
@@ -197,5 +199,5 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push image
-        if: env.PUBLISH == 'true'
+        if: env.PUBLISH == 'true' && steps.args.outputs.publish != 'false'
         run: docker push --all-tags "${{ steps.image.outputs.name }}"
