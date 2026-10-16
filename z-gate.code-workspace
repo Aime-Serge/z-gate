@@ -1,0 +1,36 @@
+{
+  // Open this file in VS Code (File > Open Workspace from File...) to work on
+  // the two products as separate projects. Each folder below is its own pnpm
+  // workspace with its own settings (<folder>/.vscode/settings.json),
+  // terminal working directory, search scope and TypeScript server.
+  // To work on one product only, open just its folder instead.
+  "folders": [
+    { "name": "website", "path": "website" },
+    { "name": "elearning", "path": "elearning" },
+    { "name": "legacy/ops (frozen)", "path": "legacy/ops" },
+    { "name": "repository (docs, CI)", "path": "." }
+  ],
+  "settings": {
+    // The "repository" folder shows only what belongs to no product: docs,
+    // CI workflows and root files. The products have their own folders above.
+    "files.exclude": {
+      "website": true,
+      "elearning": true,
+      "legacy": true
+    },
+    "files.watcherExclude": {
+      "**/node_modules/**": true,
+      "**/.next/**": true,
+      "**/dist/**": true,
+      "**/coverage/**": true
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/.next": true,
+      "**/dist": true,
+      "**/coverage": true
+    },
+    // Low-memory development (docs/DEVELOPMENT_LOW_MEMORY.md).
+    "typescript.tsserver.maxTsServerMemory": 2048
+  }
+}

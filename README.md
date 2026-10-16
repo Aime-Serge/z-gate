@@ -20,7 +20,7 @@ docs/          cross-product docs: platform-v2/ (current plan), architecture/ (A
 .github/       one CI workflow per workspace, plus repository.yml (secrets scan), journey.yml and synthetic.yml
 ```
 
-There is **no root `package.json` or lockfile**: run every command inside `website/`, `elearning/` or `legacy/ops/`. Each product owns its Postgres (`database/`: roles, configs, backup scripts), its Compose files and env templates (`deploy/`), its Dockerfiles and its CI workflow. The website's production stack also runs the edge proxy for both products (`website/deploy/edge/`).
+There is **no root `package.json` or lockfile**: run every command inside `website/`, `elearning/` or `legacy/ops/`. In VS Code, open **`z-gate.code-workspace`**: it shows `website` and `elearning` as separate projects (each with its own settings, terminal and TypeScript server), plus the frozen ops portal and the repository root (docs, CI). To work on one product only, open just its folder. Each product owns its Postgres (`database/`: roles, configs, backup scripts), its Compose files and env templates (`deploy/`), its Dockerfiles and its CI workflow. The website's production stack also runs the edge proxy for both products (`website/deploy/edge/`).
 
 **Contracts between the products.** They never import each other's apps. Each provider owns a contract package, and the other product uses it only in its `tests/contracts`:
 
