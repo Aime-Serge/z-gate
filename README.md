@@ -1,46 +1,56 @@
 # Z-GATE Digital Products
 
-"Where Business Meets Technology." Z-GATE LTD is a Rwandan company with four divisions: Advisory, Academy, Tech and Data. This repository holds its digital products: **two self-contained products** that share only a small code layer and the edge proxy.
+"Where Business Meets Technology." Z-GATE LTD is a Rwandan company with four divisions: Advisory, Academy, Tech and Data. This repository holds its digital products as **independent sub-projects**: each has its own pnpm workspace, lockfile, database, deploy files and CI workflow, and nothing joins them at the root.
 
-| Product                                                  | Folder                                                        | Status                                                |
-| -------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------- |
-| **Corporate website** (Next.js site + Payload CMS)       | `website/`: `frontend/` (site), `backend/` (CMS)              | CMS, pages, forms and launch hardening done           |
-| **E-learning platform**                                  | `elearning/`: `frontend/`, `backend/` (API), `worker/` (jobs) | API carried over from v1; UI and worker are skeletons |
-| **Operations portal** (v1 client portal + staff console) | `legacy/ops`                                                  | Feature-frozen; retired once its screens are rebuilt  |
+| Product                                                  | Folder                                                                  | Status                                                |
+| -------------------------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------- |
+| **Corporate website** (Next.js site + Payload CMS)       | [`website/`](website/README.md): `frontend/`, `backend/`, `packages/`   | CMS, pages, forms and launch hardening done           |
+| **E-learning platform**                                  | [`elearning/`](elearning/README.md): `frontend/`, `backend/`, `worker/` | API carried over from v1; UI and worker are skeletons |
+| **Operations portal** (v1 client portal + staff console) | [`legacy/ops/`](legacy/ops/README.md)                                   | Feature-frozen; retired once its screens are rebuilt  |
 
-The plan, assessment and decisions are in **`docs/platform-v2/`** (start with its `README.md`). The product split is ADR-007 and the self-contained layout ADR-008 (`docs/architecture/ADR/`). Both backends are planned to move to Django (Python); see ADR-008's last section. The final v1 state is preserved at the git tag `v1-final`.
+The plan, assessment and decisions are in **`docs/platform-v2/`** (start with its `README.md`). The product split is ADR-007, the self-contained products ADR-008, and the independent workspaces ADR-009 (`docs/architecture/ADR/`). Both backends are planned to move to Django (Python); see ADR-008's last section. The final v1 state is preserved at the git tag `v1-final`.
 
 ## Repository structure
 
 ```text
-website/      frontend/  backend/  database/  deploy/  docs/  README.md
-elearning/    frontend/  backend/  worker/  database/  deploy/  docs/  README.md
-shared/       the only code both products may use: config/, ui/, contracts/
-platform/     the only shared runtime: edge/ (Caddyfile), observability/, scripts/
-legacy/ops/   frozen v1 portal
-docs/         cross-product docs: platform-v2/ (current plan), architecture/, earlier phases
+website/       its own workspace: frontend/ backend/ packages/ config/ tests/contracts/ database/ deploy/ docs/ scripts/
+elearning/     its own workspace: frontend/ backend/ worker/ packages/ config/ tests/contracts/ e2e/journeys/ database/ deploy/ docs/ scripts/
+legacy/ops/    its own workspace: the frozen v1 portal
+docs/          cross-product docs: platform-v2/ (current plan), architecture/ (ADRs), earlier phases, low-memory guide
+.github/       one CI workflow per workspace, plus repository.yml (secrets scan), journey.yml and synthetic.yml
 ```
 
-Each product owns its Postgres (`database/`: roles, configs, backup scripts), its Compose files and env templates (`deploy/`), its Dockerfiles and its CI workflow. A product never imports from the other, both may import from `shared/`, and nothing imports from `legacy/`. `pnpm lint:boundaries` enforces this in CI. Workflows: `.github/workflows/website.yml`, `elearning.yml`, `shared.yml`, `legacy.yml`.
+There is **no root `package.json` or lockfile**: run every command inside `website/`, `elearning/` or `legacy/ops/`. Each product owns its Postgres (`database/`: roles, configs, backup scripts), its Compose files and env templates (`deploy/`), its Dockerfiles and its CI workflow. The website's production stack also runs the edge proxy for both products (`website/deploy/edge/`).
+
+**Contracts between the products.** They never import each other's apps. Each provider owns a contract package, and the other product uses it only in its `tests/contracts`:
+
+| Contract                              | Owned by   | Package                                     |
+| ------------------------------------- | ---------- | ------------------------------------------- |
+| Catalog API (`/api/v1`), enroll links | e-learning | `elearning/packages/elearning-contracts`    |
+| Lead/waitlist webhook, lead form      | website    | `website/packages/website-contracts`        |
+| Brand tokens and components           | website    | `website/packages/brand-ui`                 |
+
+Breaking changes fail before they merge: schema-compatibility tests and `oasdiff breaking` on the provider side, the consumer's contract tests run in the provider's pull request, a customer-journey test that must pass on staging before any production deploy (`journey.yml`), and read-only production checks every 10 minutes once configured (`synthetic.yml`). Each workspace's `pnpm lint:boundaries` enforces the import rules.
 
 ## Quick start (one product at a time)
 
 ```bash
-corepack enable                                   # once; the pnpm version comes from package.json
-pnpm install
+corepack enable                                   # once; each workspace pins its pnpm version
 
-docker compose -f website/deploy/compose.yml up -d        # the website's Postgres (localhost:5432)
-cp website/deploy/env/dev.env.example website/backend/.env
-cp website/deploy/env/dev.env.example website/frontend/.env
-pnpm db:migrate:website && pnpm --filter @zgate/website-backend seed
-pnpm dev:website                                  # site http://localhost:3002, CMS http://localhost:3004/admin
+cd website
+pnpm install
+docker compose -f deploy/compose.yml up -d        # the website's Postgres (localhost:5432)
+cp deploy/env/dev.env.example backend/.env
+cp deploy/env/dev.env.example frontend/.env
+pnpm db:migrate && pnpm --filter @zgate/website-backend seed
+pnpm dev                                          # site http://localhost:3002, CMS http://localhost:3004/admin
 ```
 
-E-learning works the same way: `elearning/deploy/compose.yml` (Postgres on 5433), `elearning/deploy/env/dev.env.example` → `elearning/backend/.env`, `pnpm db:migrate:elearning`, then `pnpm dev:elearning` (API :3000, frontend :3003, worker :3005).
+E-learning works the same way inside `elearning/`: `deploy/compose.yml` (Postgres on 5433), `deploy/env/dev.env.example` to `backend/.env`, `pnpm db:migrate`, then `pnpm dev` (API :3000, frontend :3003, worker :3005).
 
-On an 8 GB machine, read **`docs/DEVELOPMENT_LOW_MEMORY.md`** first. Full setup, containers-for-everything (`--profile full`) and all commands: `docs/DEVELOPER_GUIDE.md`.
+On an 8 GB machine, read **`docs/DEVELOPMENT_LOW_MEMORY.md`** first. Full setup, containers for everything (`--profile full`) and all commands: `docs/DEVELOPER_GUIDE.md`.
 
-Checks: `pnpm lint:boundaries`, then `pnpm -r --workspace-concurrency=1 run <lint|typecheck|test|build>` locally (`pnpm lint` etc. use Turborepo, which CI runs).
+Checks, inside a workspace: `pnpm lint:boundaries`, then `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`.
 
 ## Current status
 

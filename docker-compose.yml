@@ -6,7 +6,7 @@
 #   docker compose -f elearning/deploy/compose.yml up -d    # e-learning Postgres :5433
 #
 # Here, plain `docker compose up -d` starts both Postgres containers only
-# (hybrid mode: apps run natively with `pnpm dev:website` / `pnpm dev:elearning`).
+# (hybrid mode: apps run natively with `pnpm dev` inside website/ or elearning/).
 # `--profile full` adds every app container; `--profile legacy` the ops portal.
 #
 # Each entry is included on its own, so every file resolves its relative
